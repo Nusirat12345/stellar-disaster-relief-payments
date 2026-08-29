@@ -1,4 +1,5 @@
 use soroban_sdk::{contract, contractimpl, Address, Env, Symbol, String, Vec, Map, U256, u64};
+use crate::rbac::{require_permission, PERM_REVIEW_FRAUD, PERM_UPDATE_RISK_PROFILE};
 
 #[contract]
 pub struct AntiFraud;
@@ -399,6 +400,7 @@ impl AntiFraud {
         notes: String,
     ) {
         reviewer.require_auth();
+        require_permission(&env, &reviewer, PERM_REVIEW_FRAUD);
         
         let suspicious_key = Symbol::new(&env, "suspicious_transactions");
         let mut suspicious: Map<String, SuspiciousTransaction> = env.storage().instance()

@@ -1,4 +1,6 @@
 use soroban_sdk::{contract, contractimpl, Address, Env, Symbol, String, Vec, Map, U256, u64, BytesN};
+use crate::rbac::{require_permission, PERM_REGISTER_BENEFICIARY, PERM_VERIFY_BENEFICIARY,
+    PERM_DEACTIVATE_BENEFICIARY};
 
 #[contract]
 pub struct BeneficiaryManager;
@@ -107,6 +109,7 @@ impl BeneficiaryManager {
         verification_factors: Vec<VerificationFactor>,
     ) {
         registrar.require_auth();
+        require_permission(&env, &registrar, PERM_REGISTER_BENEFICIARY);
         
         // Check for duplicate registrations
         let beneficiaries_key = Symbol::new(&env, "beneficiaries");
@@ -185,6 +188,7 @@ impl BeneficiaryManager {
         provided_factors: Vec<VerificationFactor>,
     ) -> bool {
         verifier.require_auth();
+        require_permission(&env, &verifier, PERM_VERIFY_BENEFICIARY);
         
         let beneficiaries_key = Symbol::new(&env, "beneficiaries");
         let mut beneficiaries: Map<String, BeneficiaryProfile> = env.storage().instance()
@@ -328,6 +332,7 @@ impl BeneficiaryManager {
     /// Deactivate beneficiary (e.g., when they leave the program)
     pub fn deactivate_beneficiary(env: Env, admin: Address, beneficiary_id: String) {
         admin.require_auth();
+        require_permission(&env, &admin, PERM_DEACTIVATE_BENEFICIARY);
         
         let beneficiaries_key = Symbol::new(&env, "beneficiaries");
         let mut beneficiaries: Map<String, BeneficiaryProfile> = env.storage().instance()
@@ -352,6 +357,7 @@ impl BeneficiaryManager {
         duress_pin: Option<String>,
     ) -> BytesN<32> {
         registrar.require_auth();
+        require_permission(&env, &registrar, PERM_REGISTER_BENEFICIARY);
         
         // Require at least 3 factors for security
         if factors.len() < 3 {

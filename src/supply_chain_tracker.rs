@@ -1,4 +1,5 @@
 use soroban_sdk::{contract, contractimpl, Address, Env, Symbol, String, Vec, Map, U256, u64};
+use crate::rbac::{require_permission, PERM_MANAGE_SHIPMENT, PERM_CONFIRM_DELIVERY, PERM_REVIEW_FRAUD};
 
 #[contract]
 pub struct SupplyChainTracker;
@@ -79,6 +80,7 @@ impl SupplyChainTracker {
         special_handling: Vec<String>,
     ) {
         donor.require_auth();
+        require_permission(&env, &donor, PERM_MANAGE_SHIPMENT);
         
         // Check for duplicate shipment
         let shipments_key = Symbol::new(&env, "shipments");
@@ -125,6 +127,7 @@ impl SupplyChainTracker {
         temperature: Option<f64>,
     ) {
         verifier.require_auth();
+        require_permission(&env, &verifier, PERM_MANAGE_SHIPMENT);
         
         let shipments_key = Symbol::new(&env, "shipments");
         let mut shipments: Map<String, SupplyShipment> = env.storage().instance()
@@ -177,6 +180,7 @@ impl SupplyChainTracker {
         transporter: Address,
     ) {
         donor.require_auth();
+        require_permission(&env, &donor, PERM_MANAGE_SHIPMENT);
         
         let shipments_key = Symbol::new(&env, "shipments");
         let mut shipments: Map<String, SupplyShipment> = env.storage().instance()
@@ -201,6 +205,7 @@ impl SupplyChainTracker {
         photos: Vec<String>,
     ) {
         recipient.require_auth();
+        require_permission(&env, &recipient, PERM_CONFIRM_DELIVERY);
         
         let shipments_key = Symbol::new(&env, "shipments");
         let mut shipments: Map<String, SupplyShipment> = env.storage().instance()
@@ -331,6 +336,7 @@ impl SupplyChainTracker {
         reason: String,
     ) {
         reporter.require_auth();
+        require_permission(&env, &reporter, PERM_REVIEW_FRAUD);
         
         let shipments_key = Symbol::new(&env, "shipments");
         let mut shipments: Map<String, SupplyShipment> = env.storage().instance()

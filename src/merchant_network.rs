@@ -1,4 +1,5 @@
 use soroban_sdk::{contract, contractimpl, Address, Env, Symbol, String, Vec, Map, U256, u64};
+use crate::rbac::{require_permission, PERM_REGISTER_MERCHANT, PERM_VERIFY_MERCHANT, PERM_PROCESS_PAYMENT, PERM_MANAGE_FUND};
 
 // Merchant categories for spending rules (stored as u32)
 pub const CATEGORY_FOOD: u32 = 0;
@@ -146,6 +147,7 @@ impl MerchantNetwork {
         emergency_fast_track: bool, // Pre-approved from existing networks
     ) {
         owner.require_auth();
+        require_permission(&env, &owner, PERM_REGISTER_MERCHANT);
         
         // Check for duplicate registration
         let merchants_key = Symbol::new(&env, "merchants");
@@ -271,6 +273,7 @@ impl MerchantNetwork {
     ) -> String {
         merchant.require_auth();
         beneficiary.require_auth();
+        require_permission(&env, &merchant, PERM_PROCESS_PAYMENT);
         
         // Verify merchant exists and is active
         let merchants_key = Symbol::new(&env, "merchants");
@@ -579,6 +582,7 @@ impl MerchantNetwork {
     /// Daily automatic settlement to merchant wallets
     pub fn settle_balances(env: Env, admin: Address) -> u32 {
         admin.require_auth();
+        require_permission(&env, &admin, PERM_MANAGE_FUND);
         
         let merchants_key = Symbol::new(&env, "merchants");
         let mut merchants: Map<String, Merchant> = env.storage().instance()
@@ -631,6 +635,7 @@ impl MerchantNetwork {
         approve: bool,
     ) {
         admin.require_auth();
+        require_permission(&env, &admin, PERM_VERIFY_MERCHANT);
         
         let merchants_key = Symbol::new(&env, "merchants");
         let mut merchants: Map<String, Merchant> = env.storage().instance()
