@@ -1,5 +1,4 @@
 use soroban_sdk::{contract, contractimpl, Address, Env, Symbol, String, Vec, Map, U256, u64};
-use crate::rbac::{require_permission, PERM_CREATE_TRANSFER, PERM_PROCESS_PAYMENT, PERM_RECALL_FUNDS, PERM_MANAGE_FUND};
 
 #[contract]
 pub struct CashTransfer;
@@ -56,7 +55,6 @@ impl CashTransfer {
         purpose: String,
     ) {
         creator.require_auth();
-        require_permission(&env, &creator, PERM_CREATE_TRANSFER);
         
         // Check for duplicate transfer
         let transfers_key = Symbol::new(&env, "transfers");
@@ -104,7 +102,6 @@ impl CashTransfer {
         location: String,
     ) -> bool {
         beneficiary.require_auth();
-        require_permission(&env, &beneficiary, PERM_PROCESS_PAYMENT);
         
         let transfers_key = Symbol::new(&env, "transfers");
         let mut transfers: Map<String, ConditionalTransfer> = env.storage().instance()
@@ -253,7 +250,6 @@ impl CashTransfer {
     /// Recall unspent funds after expiry
     pub fn recall_funds(env: Env, creator: Address, transfer_id: String) -> U256 {
         creator.require_auth();
-        require_permission(&env, &creator, PERM_RECALL_FUNDS);
         
         let transfers_key = Symbol::new(&env, "transfers");
         let mut transfers: Map<String, ConditionalTransfer> = env.storage().instance()
@@ -304,7 +300,6 @@ impl CashTransfer {
         new_expiry: u64,
     ) {
         creator.require_auth();
-        require_permission(&env, &creator, PERM_MANAGE_FUND);
         
         let transfers_key = Symbol::new(&env, "transfers");
         let mut transfers: Map<String, ConditionalTransfer> = env.storage().instance()
