@@ -1,4 +1,6 @@
 use soroban_sdk::{contract, contractimpl, Address, Env, Symbol, String, Vec, Map, U256, u64, Bytes, panic_with_error, log};
+use crate::rbac::{require_permission, PERM_CREATE_FUND, PERM_MANAGE_FUND, PERM_DISBURSE_FUNDS,
+    PERM_MANAGE_TRIGGERS, PERM_RECALL_FUNDS, PERM_SUBMIT_ORACLE_DATA};
 
 const DISASTER_SEISMIC: &str = "seismic";
 const DISASTER_WEATHER: &str = "weather";
@@ -115,8 +117,9 @@ impl AidRegistry {
         release_triggers: Vec<Address>,
         required_signatures: u32,
     ) {
-        // Verify admin authorization
+        // Verify caller has permission to create emergency funds
         admin.require_auth();
+        require_permission(&env, &admin, PERM_CREATE_FUND);
         
         // Create fund structure
         let fund = EmergencyFund {
@@ -192,6 +195,8 @@ impl AidRegistry {
         approvers: Vec<Address>,
     ) {
         requester.require_auth();
+        // Disbursing funds requires PERM_DISBURSE_FUNDS
+        require_permission(&env, &requester, PERM_DISBURSE_FUNDS);
         
         // Verify fund exists and is active
         let fund_key = Symbol::new(&env, "fund");
@@ -300,6 +305,7 @@ impl AidRegistry {
         min_oracle_confirmations: u32,
     ) {
         admin.require_auth();
+        require_permission(&env, &admin, PERM_MANAGE_TRIGGERS);
         
         // Verify fund exists
         let fund_key = Symbol::new(&env, "fund");
@@ -373,6 +379,7 @@ impl AidRegistry {
         confidence: u64,
     ) {
         oracle.require_auth();
+        require_permission(&env, &oracle, PERM_SUBMIT_ORACLE_DATA);
         
         // Store oracle data
         let oracle_key = Symbol::new(&env, &format!("oracle_{}_{}", fund_id, trigger_id));
@@ -491,10 +498,11 @@ impl AidRegistry {
             panic_with_error!(&env, "Fund is not active");
         }
         
-        // Verify signatures (require each approver to authorize)
+        // Verify signatures (require each approver to authorize and hold PERM_DISBURSE_FUNDS)
         for approver in approvers.iter() {
             approver.require_auth();
-            
+            require_permission(&env, &approver, PERM_DISBURSE_FUNDS);
+
             if !fund.release_triggers.contains(approver) {
                 panic_with_error!(&env, "Unauthorized approver");
             }
@@ -556,6 +564,7 @@ impl AidRegistry {
         proof_of_need: String,
     ) {
         admin.require_auth();
+        require_permission(&env, &admin, PERM_MANAGE_FUND);
         
         // Get fund
         let fund_key = Symbol::new(&env, "fund");
@@ -600,6 +609,7 @@ impl AidRegistry {
         fund_id: String,
     ) -> U256 {
         donor.require_auth();
+        require_permission(&env, &donor, PERM_RECALL_FUNDS);
         
         // Get fund
         let fund_key = Symbol::new(&env, "fund");
@@ -663,6 +673,7 @@ impl AidRegistry {
         fund_id: String,
     ) {
         admin.require_auth();
+        require_permission(&env, &admin, PERM_MANAGE_FUND);
         
         let fund_key = Symbol::new(&env, "fund");
         let mut funds: Map<String, EmergencyFund> = env.storage().instance()
@@ -684,6 +695,7 @@ impl AidRegistry {
         trigger_id: String,
     ) {
         admin.require_auth();
+        require_permission(&env, &admin, PERM_MANAGE_TRIGGERS);
         
         let triggers_key = Symbol::new(&env, &format!("triggers_{}", fund_id));
         let mut triggers: Map<String, Trigger> = env.storage().instance()
